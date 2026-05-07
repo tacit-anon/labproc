@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Cached features / checkpoints (large)
+*.pt
+*.pth
+*.safetensors
+_features_cache*/
+features_cache/
+checkpoints/
+
+# Logs
+*.log
+screenlog.*
+
+# Local config
+.env
+.env.local
+
+# Anthropic API output / sweep results
+*_results.json
+*_results.log
+*_per_epoch_*.json
+*_per_epoch_*.log

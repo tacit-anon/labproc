@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "labproc-tacit"
+version = "1.0.0"
+description = "Evaluation utilities for the LabProc benchmark and the Tacit V-JEPA-2.1 video encoder"
+readme = "README.md"
+license = { text = "CC-BY-4.0" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Anonymized for review" },
+]
+dependencies = [
+  "numpy>=1.24",
+  "torch>=2.0",
+  "torchvision>=0.15",
+  "opencv-python>=4.8",
+  "scikit-learn>=1.3",
+  "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+ted-visual-text = [
+  "ftfy",
+  "regex",
+  # CLIP installed separately:
+  #   pip install git+https://github.com/openai/CLIP.git
+]
+
+[tool.setuptools.packages.find]
+include = ["labproc_tacit*"]
+exclude = ["tests*", "scripts*", "reproduce_paper*"]

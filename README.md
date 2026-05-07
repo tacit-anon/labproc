@@ -1,65 +1,165 @@
-# LabProc & Tacit
+# labproc-tacit
 
-**Anonymous repository for NeurIPS 2026 Datasets & Benchmarks submission.**
+Evaluation utilities for the **LabProc** benchmark and the **Tacit** domain-adapted V-JEPA-2.1 video encoder, accompanying our NeurIPS 2026 Evaluations & Datasets Track submission.
 
-This repository will host the benchmark, evaluation code, and adapted model weights for *LabProc: A Benchmark for Laboratory Procedure Understanding via Domain-Adapted Video World Models*.
+The benchmark dataset lives at [`huggingface.co/datasets/Labproc/labproc`](https://huggingface.co/datasets/Labproc/labproc) and the released Tacit checkpoint at [`huggingface.co/Labproc/tacit`](https://huggingface.co/Labproc/tacit).
 
-## Status
-
-This is a placeholder repository created at the abstract submission deadline. The full release will be available at the paper submission deadline and will include:
-
-- **LabProc benchmark** — six tasks for laboratory procedure understanding: physical state classification (PSC), procedure causal reasoning (CCR), transition error detection (TED), visual state discrimination (VSD), visual continuation reasoning (TED-Visual), and same-state ordering (Same-State CCR).
-- **Tacit** — a domain-adapted V-JEPA-2.1 encoder trained on 155 hours of curated chemistry footage (1,037 videos spanning organic purification, polymerase chain reaction, and Western blot procedures).
-- **Evaluation harness** — scripts to reproduce all reported results, including comparisons against base V-JEPA-2.1 (305M parameters) and a frontier vision-language model.
-- **Annotations and splits** — task-level labels and standardized train/eval splits.
-
-## Planned repository structure
+## What's in here
 
 ```
-labproc/
-├── benchmark/
-│   ├── psc/                  # Physical state classification
-│   ├── ccr/                  # Procedure causal reasoning
-│   ├── ted/                  # Transition error detection
-│   ├── vsd/                  # Visual state discrimination
-│   ├── ted_visual/           # Visual continuation reasoning
-│   └── same_state_ccr/       # Same-state ordering
-├── tacit/
-│   ├── model/                # V-JEPA-2.1 adaptation code
-│   ├── inference.py          # Run Tacit on a video
-│   └── weights/              # Pointer to model weights (Hugging Face)
-├── eval/
-│   ├── run_eval.py           # Reproduce headline results
-│   └── compose.py            # V+L composition (Tacit + VLM)
-├── data/
-│   └── README.md             # Data access instructions
-└── README.md
+labproc-tacit/
+├── labproc_tacit/        # Importable Python package — encoder + probes
+│   ├── encoder.py        # build_encoder, load_checkpoint, encode_video
+│   ├── video_io.py       # extract_frames_at_timestamp, find_video_path
+│   ├── data.py           # CSV loaders + controlled vocabularies
+│   └── probes/           # One module per benchmark task
+│       ├── psc.py
+│       ├── ccr.py
+│       ├── ted.py
+│       ├── ted_visual.py
+│       ├── vsd.py
+│       └── ccr_same_state.py
+│
+├── scripts/              # User-facing CLI evaluation entry points
+│   ├── evaluate_psc.py
+│   ├── evaluate_ccr.py
+│   ├── evaluate_ted.py
+│   ├── evaluate_ted_visual.py
+│   ├── evaluate_vsd.py
+│   └── evaluate_ccr_same_state.py
+│
+└── reproduce_paper/      # Research-grade scripts for paper number reproduction
+    ├── README.md
+    ├── adapt_v3.py       # Tacit adaptation training loop
+    ├── extract_features.py
+    └── sweep_*.py        # Per-epoch sweep runners for each task
 ```
 
-## Reproducing the headline results
+For routine evaluation use `scripts/`. The `reproduce_paper/` directory is for users who want to reproduce the paper's per-epoch comparison tables exactly; those scripts have hard-coded paths matching the original GPU environment and may need adjustment.
 
-Once released, the following will reproduce the key numbers in the paper:
+## Installation
+
+### 1. Clone this repo and install the package
 
 ```bash
-# Physical state classification (10-class)
-python eval/run_eval.py --task psc --model tacit
-# Expected: 34.1%
-python eval/run_eval.py --task psc --model vjepa-base
-# Expected: 25.6%
-
-# Visual state discrimination
-python eval/run_eval.py --task vsd --model tacit
-# Expected: 56.1%
-
-# PSC-Combined (V+L composition)
-python eval/compose.py --vision tacit --language claude-opus
-# Expected: 64.5%
+git clone https://huggingface.co/Labproc/labproc-tacit
+cd labproc-tacit
+pip install -e .
 ```
+
+### 2. Install V-JEPA-2 model definition
+
+The encoder uses Meta's V-JEPA-2 architecture. Clone the official repo somewhere on your machine:
+
+```bash
+git clone https://github.com/facebookresearch/jepa ~/.cache/torch/hub/facebookresearch_vjepa2_main
+```
+
+If you want to clone elsewhere, set the `VJEPA2_REPO_ROOT` environment variable to point at it.
+
+### 3. Optional: install CLIP for the TED `visual_text` variant
+
+```bash
+pip install git+https://github.com/openai/CLIP.git
+pip install ftfy regex
+```
+
+## Quick start
+
+### Acquire source videos
+
+The LabProc dataset releases annotations and a YouTube URL manifest, but does not redistribute video files. Download the videos referenced in `manifests/source_videos.csv`:
+
+```bash
+python -c "
+import pandas as pd
+m = pd.read_csv('manifests/source_videos.csv')
+for url in m['upstream_url']:
+    print(url)
+" | xargs -I{} yt-dlp -o '/your/video/dir/%(id)s.%(ext)s' {}
+```
+
+### Run any benchmark task
+
+The default checkpoint is the released Tacit at `Labproc/tacit`. Override with `--checkpoint <path>` to evaluate the unadapted V-JEPA-2.1 base or any other checkpoint.
+
+```bash
+# PSC: physical state classification
+python scripts/evaluate_psc.py \
+    --psc-csv annotations/op_master.csv \
+    --video-root /your/video/dir \
+    --checkpoint /path/to/tacit.pth \
+    --checkpoint-key model_state \
+    --cache /tmp/features_psc_tacit.pt
+
+# CCR: standard pairwise ordering (reuse the PSC feature cache)
+python scripts/evaluate_ccr.py \
+    --psc-csv annotations/op_master.csv \
+    --video-root /your/video/dir \
+    --checkpoint /path/to/tacit.pth \
+    --checkpoint-key model_state \
+    --cache /tmp/features_psc_tacit.pt
+
+# TED: 4-MCQ transition error detection
+python scripts/evaluate_ted.py \
+    --psc-csv annotations/op_master.csv \
+    --ted-csv benchmark_items/ted.csv \
+    --video-root /your/video/dir \
+    --checkpoint /path/to/tacit.pth \
+    --checkpoint-key model_state \
+    --variant both
+
+# TED-Visual: motion triplet anchor matching
+python scripts/evaluate_ted_visual.py \
+    --triplets-csv benchmark_items/ted_visual.csv \
+    --video-root /your/video/dir \
+    --checkpoint /path/to/tacit.pth \
+    --checkpoint-key model_state
+
+# VSD: visual state discrimination
+python scripts/evaluate_vsd.py \
+    --psc-csv annotations/op_master.csv \
+    --video-root /your/video/dir \
+    --checkpoint /path/to/tacit.pth \
+    --checkpoint-key model_state \
+    --cache /tmp/features_psc_tacit.pt
+```
+
+The PSC, CCR, and VSD scripts share a feature cache. If you pass `--cache /tmp/features_psc_tacit.pt` to all three, the encoder runs only once.
+
+## Headline numbers
+
+To reproduce the paper's table, run each script with `--checkpoint Labproc/tacit` and again with the base V-JEPA-2.1 checkpoint:
+
+| Task | Tacit | Base V-JEPA-2.1 |
+|------|-------|------------------|
+| PSC | 31.2% | 16.2% |
+| TED | 76.1% | 75.3% |
+| CCR pair-acc | 58.7% | 43.9% |
+| VSD aggregate | 57.8% | 50.2% |
+| VSD pure-motion | 54.7% | 50.0% |
+| TED-Visual Hard | 69.6% | 60.9% |
+| TED-Visual Strict Hard | 66.7% | 60.6% |
+
+Tacit checkpoint = epoch 4 of the adaptation run, loss 0.70.
+
+## Citing this work
+
+```bibtex
+@inproceedings{labproc2026,
+  title     = {LabProc and Tacit: A Benchmark and Domain-Adapted Video Encoder for Laboratory Procedure Understanding},
+  author    = {Anonymous},
+  booktitle = {NeurIPS 2026 Evaluations and Datasets Track},
+  year      = {2026}
+}
+```
+
+The author and affiliation will be filled in for the camera-ready release.
 
 ## License
 
-The benchmark, code, and adapted model weights will be released under a permissive license (TBD at camera-ready) suitable for academic and non-commercial use.
+CC BY 4.0 — see [LICENSE](LICENSE).
 
-## Contact
+## Notes on the Same-State CCR script
 
-Author identity withheld for double-blind review. Correspondence will be enabled at camera-ready.
+`scripts/evaluate_ccr_same_state.py` is provided for users investigating alternative adaptation strategies, but **the released Tacit checkpoint is not the appropriate evaluation target for this task**. The adaptation pipeline attenuates within-state temporal coherence; see companion paper Section 6 for full details. Same-State CCR is not part of the v1 benchmark.

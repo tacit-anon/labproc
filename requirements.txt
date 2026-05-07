@@ -1,0 +1,19 @@
+# Core scientific stack
+numpy>=1.24
+torch>=2.0
+torchvision>=0.15
+
+# Video decoding
+opencv-python>=4.8
+
+# Probe training & evaluation
+scikit-learn>=1.3
+scipy>=1.11
+
+# TED visual+text variant (optional)
+git+https://github.com/openai/CLIP.git
+ftfy
+regex
+
+# V-JEPA-2 model definition (clone separately; see README)
+# git clone https://github.com/facebookresearch/jepa

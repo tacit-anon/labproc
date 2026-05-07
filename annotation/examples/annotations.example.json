@@ -1,0 +1,59 @@
+{
+  "branch": "pcr",
+  "category": "pcr",
+  "source_folder": "Videos/PCR",
+  "annotations": [
+    {
+      "video_file": "good_yt_example_RTPCR.mp4",
+      "ts": 90,
+      "label": "dry_tube_no_liquid",
+      "physical_state": "dry_tube_no_liquid",
+      "your_label": "dry_tube_no_liquid",
+      "confidence": "high",
+      "screenshot_path": "good_yt_example_RTPCR/t00090.00__dry_tube_no_liquid.jpg",
+      "substance_tags": "solid",
+      "action_tags": "observing_static",
+      "equipment_tags": "pcr_tube,ice_bath"
+    },
+    {
+      "video_file": "good_yt_example_RTPCR.mp4",
+      "ts": 270,
+      "label": "dry_bath_incubating",
+      "physical_state": "dry_bath_incubating",
+      "your_label": "dry_bath_incubating",
+      "confidence": "high",
+      "screenshot_path": "good_yt_example_RTPCR/t00270.00__dry_bath_incubating.jpg",
+      "substance_tags": "liquid,hot",
+      "action_tags": "heating",
+      "equipment_tags": "dry_bath,microtube"
+    },
+    {
+      "video_file": "good_yt_example_RTPCR.mp4",
+      "ts": 450,
+      "label": "tube_in_thermocycler",
+      "physical_state": "tube_in_thermocycler",
+      "your_label": "tube_in_thermocycler",
+      "confidence": "high",
+      "screenshot_path": "good_yt_example_RTPCR/t00450.00__tube_in_thermocycler.jpg",
+      "substance_tags": "liquid,clear,colorless",
+      "action_tags": "observing_static",
+      "equipment_tags": "thermocycler"
+    }
+  ],
+  "audit": [
+    {
+      "video_file": "good_yt_example_OUT_OF_CATEGORY.mp4",
+      "branch": "pcr",
+      "decision": "NON_CATEGORY_SKIP",
+      "reason": "Erba clinical chemistry assay; outside PCR taxonomy",
+      "label_proposal": ""
+    },
+    {
+      "video_file": "good_yt_example_TAXONOMY_GAP.mp4",
+      "branch": "pcr",
+      "decision": "TAXONOMY_GAP",
+      "reason": "Bead-based magnetic extraction step has no current label",
+      "label_proposal": "magnetic_bead_extraction"
+    }
+  ]
+}
